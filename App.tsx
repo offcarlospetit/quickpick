@@ -1,11 +1,15 @@
 import React from 'react';
-import {SafeAreaView, StyleSheet, Text, View} from 'react-native';
+import {CoreProvider} from './src/core';
 import AppNavigator from './src/navigation';
 
 type Props = {};
 
 const App = (props: Props) => {
-  return <AppNavigator />;
+  return (
+    <CoreProvider>
+      <AppNavigator />
+    </CoreProvider>
+  );
 };
 
 export default App;

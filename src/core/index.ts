@@ -1,0 +1,1 @@
+export { default as CoreProvider } from './context/index';
