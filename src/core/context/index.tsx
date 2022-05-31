@@ -13,8 +13,22 @@ export interface ProviderProps {
   children: React.ReactNode;
 }
 
+export interface Place {
+  id: number;
+  name: string;
+  address: string;
+  number: string;
+  city: string;
+  longitude: number;
+  latitude: number;
+  menu: Array<any>;
+  webview: string | null;
+  image: string;
+}
 export interface ContextProps {
   scheduleNotification: () => void;
+  place: Array<Place>;
+  addEventListener: (callback: Function) => void;
 }
 
 export const CoreContext = createContext<ContextProps>({} as ContextProps);
@@ -22,7 +36,7 @@ export const CoreContext = createContext<ContextProps>({} as ContextProps);
 const CoreProvider = ({children}: ProviderProps) => {
   const appState = useRef(AppState.currentState);
   const [appStateVisible, setAppStateVisible] = useState(appState.current);
-  const [place, setPlace] = useState<any>();
+  const [place, setPlace] = useState<Array<Place>>([]);
 
   const registerTask = async () => {
     const {status} = await Location.getBackgroundPermissionsAsync();
@@ -80,9 +94,9 @@ const CoreProvider = ({children}: ProviderProps) => {
     const places = Data.filter(place => {
       const {latitude: lat, longitude: lon} = place;
       const distance = GetDistance(latitude, logintude, lat, lon);
-      if (distance < 0.1) {
+      if (distance < 0.5) {
         scheduleNotification();
-        return place;
+        return place as Place;
       }
     });
     setPlace(places);
@@ -104,6 +118,15 @@ const CoreProvider = ({children}: ProviderProps) => {
       }
     },
   );
+
+  const addEventListener = (callback: Function) => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(
+      notification => {
+        console.log({notification});
+        callback();
+      },
+    );
+  };
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', nextAppState => {
@@ -133,7 +156,8 @@ const CoreProvider = ({children}: ProviderProps) => {
   }, []);
 
   return (
-    <CoreContext.Provider value={{scheduleNotification}}>
+    <CoreContext.Provider
+      value={{scheduleNotification, place, addEventListener}}>
       {children}
     </CoreContext.Provider>
   );

@@ -1,15 +1,29 @@
 import React, {useEffect, useContext} from 'react';
-import {FlatList, Image, StyleSheet, Text, View} from 'react-native';
+import {
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import {useNavigation} from '@react-navigation/native';
 import {Data, Geoloc} from '../../utils';
-import {CoreContext} from '../../core/context';
+import {CoreContext, Place} from '../../core/context';
+import {StackParamList} from '../../navigation/HomeStack';
 const {GetDistance} = Geoloc;
 
-type Props = {};
+type HomeScreenProp = NativeStackNavigationProp<StackParamList, 'HomeScreen'>;
+interface PlaceExtended extends Place {
+  distance: number;
+}
 
-const Home = (props: Props) => {
-  const {scheduleNotification} = useContext(CoreContext);
-  const [data, setData] = React.useState<any>([]);
+const Home = (props: HomeScreenProp) => {
+  const {addEventListener, place} = useContext(CoreContext);
+  const {navigate} = useNavigation<HomeScreenProp>();
+  const [data, setData] = React.useState<Array<PlaceExtended>>([]);
   useEffect(() => {
     Geolocation.getCurrentPosition(info => {
       const {latitude, longitude} = info.coords;
@@ -18,8 +32,13 @@ const Home = (props: Props) => {
         const distance = GetDistance(latitude, longitude, lat, lon);
         return {...place, distance};
       });
-      const sortedPlaces = places.sort((a, b) => a.distance - b.distance);
+      const sortedPlaces = places.sort(
+        (a, b) => a.distance - b.distance,
+      ) as Array<PlaceExtended>;
       setData(sortedPlaces);
+      addEventListener(() => {
+        navigate('Detail', {id: undefined});
+      });
     });
   }, []);
 
@@ -27,13 +46,21 @@ const Home = (props: Props) => {
     return num >= 1000 ? `${Math.round(num / 100) / 10}K` : String(num);
   };
 
-  const renderItem = ({item}: {item: any}) => {
+  const navigateToDetail = (id: number) => {
+    navigate('Detail', {id: id});
+  };
+
+  const renderItem = ({item}: {item: PlaceExtended}) => {
     return (
-      <View style={styles.item}>
-        <Text style={styles.title}>{item.name}</Text>
-        <Text style={styles.distance}>{parseThousands(item.distance)} km</Text>
-        <Image style={styles.image} source={{uri: item.image}} />
-      </View>
+      <TouchableOpacity onPress={() => navigateToDetail(item.id)}>
+        <View style={styles.item}>
+          <Text style={styles.title}>{item.name}</Text>
+          <Text style={styles.distance}>
+            {parseThousands(item.distance)} km
+          </Text>
+          <Image style={styles.image} source={{uri: item.image}} />
+        </View>
+      </TouchableOpacity>
     );
   };
   return (
@@ -41,7 +68,7 @@ const Home = (props: Props) => {
       <FlatList
         data={data}
         extraData={data}
-        keyExtractor={item => item.id}
+        keyExtractor={item => item.id + ''}
         renderItem={renderItem}
         onEndReachedThreshold={0.7}
       />
