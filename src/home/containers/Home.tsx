@@ -21,7 +21,7 @@ interface PlaceExtended extends Place {
 }
 
 const Home = (props: HomeScreenProp) => {
-  const {addEventListener, place} = useContext(CoreContext);
+  const {addEventListener, place, coords} = useContext(CoreContext);
   const {navigate} = useNavigation<HomeScreenProp>();
   const [data, setData] = React.useState<Array<PlaceExtended>>([]);
   useEffect(() => {
@@ -58,13 +58,47 @@ const Home = (props: HomeScreenProp) => {
           <Text style={styles.distance}>
             {parseThousands(item.distance)} km
           </Text>
+          <Text style={styles.distance}>{item.distance} km</Text>
           <Image style={styles.image} source={{uri: item.image}} />
         </View>
       </TouchableOpacity>
     );
   };
+
+  const renderItemFavorite = ({item}: {item: PlaceExtended}) => {
+    //favorite places like instagram history
+    //circle view
+    return (
+      <View
+        style={{
+          width: 50,
+          height: 50,
+          borderRadius: 25,
+          backgroundColor: '#fff',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: 10,
+        }}>
+        <Image style={styles.image} source={{uri: item.image}} />
+      </View>
+    );
+  };
+
   return (
     <View style={{flex: 1}}>
+      <View>
+        {/* Favorite carrousel */}
+        <FlatList
+          data={data}
+          renderItem={renderItemFavorite}
+          keyExtractor={item => String(item.id)}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+        />
+      </View>
+      <View>
+        <Text>{'lat: ' + coords.lat + '-' + 'lon' + coords.lon}</Text>
+      </View>
       <FlatList
         data={data}
         extraData={data}

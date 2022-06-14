@@ -21,15 +21,12 @@ const Detail = (props: DetailScreenProp) => {
 
   const returnViewDetail = () => {
     let detailPlace;
-    console.log({id});
     if (id) {
       detailPlace = Data.find(item => item.id === id);
     } else {
       detailPlace = place[0];
     }
-    console.log({object: detailPlace});
     const {webview} = detailPlace ?? {};
-    console.log({webview});
     if (webview) {
       return <WebView source={{uri: 'https://queresto.com/barteclados'}} />;
     } else {

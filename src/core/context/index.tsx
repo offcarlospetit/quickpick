@@ -1,6 +1,6 @@
 import React, {createContext, useEffect, useRef, useState} from 'react';
 import * as Notifications from 'expo-notifications';
-import {AppState} from 'react-native';
+import {Alert, AppState} from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
 import * as TaskManager from 'expo-task-manager';
 import * as Location from 'expo-location';
@@ -29,6 +29,7 @@ export interface ContextProps {
   scheduleNotification: () => void;
   place: Array<Place>;
   addEventListener: (callback: Function) => void;
+  coords: {lat: number; lon: number};
 }
 
 export const CoreContext = createContext<ContextProps>({} as ContextProps);
@@ -37,6 +38,7 @@ const CoreProvider = ({children}: ProviderProps) => {
   const appState = useRef(AppState.currentState);
   const [appStateVisible, setAppStateVisible] = useState(appState.current);
   const [place, setPlace] = useState<Array<Place>>([]);
+  const [coords, setCoords] = useState({lat: 0, lon: 0});
 
   const registerTask = async () => {
     const {status} = await Location.getBackgroundPermissionsAsync();
@@ -76,14 +78,16 @@ const CoreProvider = ({children}: ProviderProps) => {
     });
   };
 
-  const scheduleNotification = async () => {
+  const scheduleNotification = async (
+    title: string = 'Notificacion de prueba',
+    body: string = 'Esta es una notificacion de prueba',
+  ) => {
     const canNotify = await allowsNotificationsAsync();
     if (canNotify) {
-      console.log('Notifications are allowed');
       Notifications.scheduleNotificationAsync({
         content: {
-          title: 'Look at that notification',
-          body: "I'm so proud of myself!",
+          title: title,
+          body: body,
         },
         trigger: null,
       });
@@ -93,6 +97,7 @@ const CoreProvider = ({children}: ProviderProps) => {
   const findMenu = (latitude: number, logintude: number) => {
     const places = Data.filter(place => {
       const {latitude: lat, longitude: lon} = place;
+      setCoords({lat, lon});
       const distance = GetDistance(latitude, logintude, lat, lon);
       if (distance < 0.5) {
         scheduleNotification();
@@ -110,22 +115,21 @@ const CoreProvider = ({children}: ProviderProps) => {
         // Error occurred - check `error.message` for more details.
         return;
       }
-      if (data && appStateVisible === 'background' && place === undefined) {
+
+      if (data && appStateVisible === 'background') {
         const {locations} = data;
         const {coords} = locations[0];
         const {latitude, longitude} = coords;
+        setCoords({lat: latitude, lon: longitude});
         findMenu(latitude, longitude);
       }
     },
   );
 
   const addEventListener = (callback: Function) => {
-    const subscription = Notifications.addNotificationResponseReceivedListener(
-      notification => {
-        console.log({notification});
-        callback();
-      },
-    );
+    Notifications.addNotificationResponseReceivedListener(notification => {
+      callback();
+    });
   };
 
   useEffect(() => {
@@ -139,15 +143,12 @@ const CoreProvider = ({children}: ProviderProps) => {
 
       appState.current = nextAppState;
       setAppStateVisible(appState.current);
-      console.log('AppState', appState.current);
     });
 
     return () => {
       subscription.remove();
     };
   }, []);
-
-  useEffect(() => {}, []);
 
   useEffect(() => {
     requestPermissionsAsync();
@@ -157,7 +158,7 @@ const CoreProvider = ({children}: ProviderProps) => {
 
   return (
     <CoreContext.Provider
-      value={{scheduleNotification, place, addEventListener}}>
+      value={{scheduleNotification, place, addEventListener, coords}}>
       {children}
     </CoreContext.Provider>
   );
